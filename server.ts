@@ -127,7 +127,7 @@ const orderRouter = express.Router();
 orderRouter.get('/', (req, res) => {
   const orders = db.prepare(`
     SELECT 
-      id, facility_id, vendor_id, status, total, 
+      id, product_id, buyer_id, status, amount, 
       datetime(created_at, 'localtime') as created_at 
     FROM orders 
     ORDER BY created_at DESC
@@ -205,7 +205,7 @@ const analyticsRouter = express.Router();
 
 analyticsRouter.get('/', (req, res) => {
   const totalOrders = (db.prepare('SELECT COUNT(*) as count FROM orders').get() as any).count;
-  const totalRevenue = (db.prepare("SELECT SUM(total) as sum FROM orders WHERE status != 'DRAFT'").get() as any).sum || 0;
+  const totalRevenue = (db.prepare("SELECT SUM(amount) as sum FROM orders WHERE status != 'pending'").get() as any).sum || 0;
   
   const statusDist = db.prepare('SELECT status as name, COUNT(*) as value FROM orders GROUP BY status').all();
   
