@@ -69,7 +69,7 @@ export default function App() {
     if (!user) return;
     setLoading(true);
     try {
-      const headers = { 'Authorization': `Bearer ${user.token}` };
+      const headers = { Authorization: `Bearer ${user.token}` };
       
       const requests = [
         fetch('/api/orders', { headers }),
@@ -211,7 +211,7 @@ export default function App() {
 
   const downloadInvoice = async (orderId: number) => {
     const res = await fetch(`/api/orders/invoice/${orderId}`, {
-      headers: { 'Authorization': `Bearer ${user?.token}` }
+      headers: { Authorization: `Bearer ${user?.token}` }
     });
     if (res.ok) {
       const blob = await res.blob();
