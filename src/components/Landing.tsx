@@ -43,10 +43,10 @@ export default function Landing({ onEnterPortal }: LandingProps) {
           >
             <h1 className="text-5xl md:text-7xl font-bold text-slate-900 tracking-tight mb-8 leading-tight">
               India's Integrated <br />
-              <span className="text-emerald-600">Medical & AYUSH</span> Supply
+              <span className="text-emerald-600">Medical Device</span> Supply
             </h1>
             <p className="text-xl text-slate-600 max-w-3xl mx-auto mb-12 leading-relaxed">
-              A sovereign B2B procurement platform connecting hospitals, clinics, and AYUSH centers with verified manufacturers. Built for scale, compliance, and transparency.
+              A sovereign B2B procurement platform connecting healthcare facilities, clinics, and individuals with verified medical device manufacturers. Built for scale, compliance, and transparency.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button 
@@ -94,7 +94,7 @@ export default function Landing({ onEnterPortal }: LandingProps) {
               {
                 icon: <Globe className="w-8 h-8 text-emerald-600" />,
                 title: "Pan-India Reach",
-                desc: "Connecting rural AYUSH centers with top-tier medical manufacturers."
+                desc: "Connecting rural healthcare facilities with top-tier medical manufacturers."
               },
               {
                 icon: <Activity className="w-8 h-8 text-emerald-600" />,
@@ -104,7 +104,7 @@ export default function Landing({ onEnterPortal }: LandingProps) {
               {
                 icon: <Stethoscope className="w-8 h-8 text-emerald-600" />,
                 title: "Specialized Catalogue",
-                desc: "Curated selection of modern medical devices and traditional AYUSH infrastructure."
+                desc: "Curated selection of modern medical devices, diagnostic equipment, and surgical tools."
               }
             ].map((feature, i) => (
               <motion.div 
