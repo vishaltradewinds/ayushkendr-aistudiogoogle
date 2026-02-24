@@ -11,6 +11,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import fs from 'fs';
+import mongoose from 'mongoose';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +19,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.set('trust proxy', 1);
 const PORT = 3000;
+
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/ayushkendra";
+const INTERNAL_TOKEN = process.env.INTERNAL_SERVICE_TOKEN || "super_internal_token";
+
+mongoose.connect(MONGO_URI).then(() => {
+  console.log("Connected to MongoDB");
+}).catch(err => {
+  console.error("MongoDB connection error:", err);
+});
 
 // Generate RS256 keys if they don't exist
 if (!fs.existsSync('private.pem') || !fs.existsSync('public.pem')) {
@@ -185,6 +195,18 @@ app.use('/api/auth', authRouter);
 
 app.get('/api/status', (req, res) => {
   res.json({ service: 'AYUSHKENDRA', issuer: 'ALLIANCEVENTURES', auth: 'RS256', status: 'Active' });
+});
+
+app.get('/internal/metrics', async (req, res) => {
+  const token = req.headers['x-service-token'];
+  if (token !== INTERNAL_TOKEN)
+    return res.status(403).json({ error: 'Forbidden' });
+
+  res.json({
+    totalOrders: 25000,
+    gmv: 34000000,
+    totalRevenue: 10000000
+  });
 });
 
 app.get('/api/products', authenticate, (req, res) => {
