@@ -76,7 +76,7 @@ export default function App() {
         fetch('/api/products', { headers })
       ];
 
-      if (['SUPER_ADMIN', 'COMPANY_ADMIN', 'GOVERNMENT_VIEW', 'INVESTOR_VIEW'].includes(user.role)) {
+      if (['SUPER_ADMIN', 'COMPANY_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'].includes(user.role)) {
         requests.push(fetch('/api/analytics/summary', { headers }));
       }
       
@@ -129,7 +129,7 @@ export default function App() {
     
     if (authMode === 'register') {
       body.org_name = org_name;
-      body.org_type = role === 'VENDOR_ADMIN' ? 'VENDOR' : role === 'FACILITY_ADMIN' ? 'HOSPITAL' : 'GOVERNMENT';
+      body.org_type = role === 'VENDOR_ADMIN' ? 'VENDOR' : role === 'FACILITY_ADMIN' ? 'HOSPITAL' : role === 'ADMIN_VIEW' ? 'ADMIN' : 'GOVERNMENT';
       body.gstin = gstin;
     }
 
@@ -303,7 +303,7 @@ export default function App() {
                     <option value="FACILITY_ADMIN">Healthcare Facility / Hospital</option>
                     <option value="VENDOR_ADMIN">Medical Device Vendor / Manufacturer</option>
                     <option value="GOVERNMENT_VIEW">Government / Auditor</option>
-                    <option value="INVESTOR_VIEW">Investor</option>
+                    <option value="ADMIN_VIEW">Admin</option>
                   </select>
                 </div>
               </>
@@ -328,7 +328,7 @@ export default function App() {
 
   // Navigation Items based on Role
   const navItems = [
-    { id: 'home', icon: LayoutDashboard, label: 'Dashboard', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'INVESTOR_VIEW'] },
+    { id: 'home', icon: LayoutDashboard, label: 'Dashboard', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'] },
     { id: 'products', icon: Package, label: 'Catalogue', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN'] },
     { id: 'orders', icon: ShoppingCart, label: 'Procurement Log', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN'] },
     { id: 'audit', icon: FileSearch, label: 'Audit Trail', roles: ['SUPER_ADMIN', 'GOVERNMENT_VIEW'] },
