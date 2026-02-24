@@ -73,13 +73,10 @@ export default function App() {
       
       const requests = [
         fetch('/api/orders', { headers }),
-        fetch('/api/products', { headers })
+        fetch('/api/products', { headers }),
+        fetch('/api/analytics/summary', { headers })
       ];
 
-      if (['SUPER_ADMIN', 'COMPANY_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'].includes(user.role)) {
-        requests.push(fetch('/api/analytics/summary', { headers }));
-      }
-      
       if (['SUPER_ADMIN', 'GOVERNMENT_VIEW'].includes(user.role)) {
         requests.push(fetch('/api/audit', { headers }));
       }
@@ -418,7 +415,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               className="space-y-8"
             >
-              {analytics ? (
+              {['SUPER_ADMIN', 'COMPANY_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'].includes(user.role) && analytics && (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
@@ -477,10 +474,69 @@ export default function App() {
                     </div>
                   </div>
                 </>
-              ) : (
-                <div className="bg-white p-10 rounded-3xl shadow-sm border border-slate-200 text-center">
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">Welcome to AyushKendra</h3>
-                  <p className="text-slate-500">Navigate using the sidebar to manage your operations.</p>
+              )}
+
+              {user.role === 'VENDOR_ADMIN' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-blue-50 text-blue-600 p-4 rounded-2xl">
+                      <ShoppingCart className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">My Orders</p>
+                      <p className="text-3xl font-black text-slate-900">{orders.length}</p>
+                    </div>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-emerald-50 text-emerald-600 p-4 rounded-2xl">
+                      <IndianRupee className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">My Revenue</p>
+                      <p className="text-3xl font-black text-slate-900">₹{orders.reduce((acc, o) => acc + o.total, 0).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-amber-50 text-amber-600 p-4 rounded-2xl">
+                      <Package className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">My Products</p>
+                      <p className="text-3xl font-black text-slate-900">{products.filter(p => p.vendor_id === user.org_id).length}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {user.role === 'FACILITY_ADMIN' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-blue-50 text-blue-600 p-4 rounded-2xl">
+                      <ShoppingCart className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Orders Placed</p>
+                      <p className="text-3xl font-black text-slate-900">{orders.length}</p>
+                    </div>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-emerald-50 text-emerald-600 p-4 rounded-2xl">
+                      <IndianRupee className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Spent</p>
+                      <p className="text-3xl font-black text-slate-900">₹{orders.reduce((acc, o) => acc + o.total, 0).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-amber-50 text-amber-600 p-4 rounded-2xl">
+                      <RefreshCw className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Pending Orders</p>
+                      <p className="text-3xl font-black text-slate-900">{orders.filter(o => o.status === 'PENDING').length}</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </motion.div>

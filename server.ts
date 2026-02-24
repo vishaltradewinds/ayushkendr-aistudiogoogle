@@ -264,13 +264,29 @@ app.get('/api/orders/invoice/:id', authenticate, (req, res) => {
   doc.end();
 });
 
-app.get('/api/analytics/summary', authenticate, authorize(['SUPER_ADMIN', 'COMPANY_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW']), (req, res) => {
-  const totalOrders = (db.prepare('SELECT COUNT(*) as count FROM orders').get() as any).count;
-  const totalRevenue = (db.prepare("SELECT SUM(total) as sum FROM orders WHERE status != 'DRAFT' AND status != 'CANCELLED'").get() as any).sum || 0;
-  const totalGst = (db.prepare("SELECT SUM(cgst + sgst + igst) as sum FROM orders WHERE status != 'DRAFT' AND status != 'CANCELLED'").get() as any).sum || 0;
-  
-  const statusDist = db.prepare('SELECT status as name, COUNT(*) as value FROM orders GROUP BY status').all();
-  const revenueTrend = db.prepare("SELECT date(created_at) as name, SUM(total) as revenue FROM orders GROUP BY date(created_at) ORDER BY date(created_at) DESC LIMIT 7").all().reverse();
+app.get('/api/analytics/summary', authenticate, (req, res) => {
+  const user = (req as any).user;
+  let totalOrders, totalRevenue, totalGst, statusDist, revenueTrend;
+
+  if (['SUPER_ADMIN', 'COMPANY_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'].includes(user.role)) {
+    totalOrders = (db.prepare('SELECT COUNT(*) as count FROM orders').get() as any).count;
+    totalRevenue = (db.prepare("SELECT SUM(total) as sum FROM orders WHERE status != 'DRAFT' AND status != 'CANCELLED'").get() as any).sum || 0;
+    totalGst = (db.prepare("SELECT SUM(cgst + sgst + igst) as sum FROM orders WHERE status != 'DRAFT' AND status != 'CANCELLED'").get() as any).sum || 0;
+    statusDist = db.prepare('SELECT status as name, COUNT(*) as value FROM orders GROUP BY status').all();
+    revenueTrend = db.prepare("SELECT date(created_at) as name, SUM(total) as revenue FROM orders GROUP BY date(created_at) ORDER BY date(created_at) DESC LIMIT 7").all().reverse();
+  } else if (user.role === 'VENDOR_ADMIN') {
+    totalOrders = (db.prepare('SELECT COUNT(*) as count FROM orders WHERE vendor_id = ?').get(user.org_id) as any).count;
+    totalRevenue = (db.prepare("SELECT SUM(total) as sum FROM orders WHERE vendor_id = ? AND status != 'DRAFT' AND status != 'CANCELLED'").get(user.org_id) as any).sum || 0;
+    totalGst = (db.prepare("SELECT SUM(cgst + sgst + igst) as sum FROM orders WHERE vendor_id = ? AND status != 'DRAFT' AND status != 'CANCELLED'").get(user.org_id) as any).sum || 0;
+    statusDist = db.prepare('SELECT status as name, COUNT(*) as value FROM orders WHERE vendor_id = ? GROUP BY status').all(user.org_id);
+    revenueTrend = db.prepare("SELECT date(created_at) as name, SUM(total) as revenue FROM orders WHERE vendor_id = ? GROUP BY date(created_at) ORDER BY date(created_at) DESC LIMIT 7").all(user.org_id).reverse();
+  } else {
+    totalOrders = (db.prepare('SELECT COUNT(*) as count FROM orders WHERE facility_id = ?').get(user.org_id) as any).count;
+    totalRevenue = (db.prepare("SELECT SUM(total) as sum FROM orders WHERE facility_id = ? AND status != 'DRAFT' AND status != 'CANCELLED'").get(user.org_id) as any).sum || 0;
+    totalGst = (db.prepare("SELECT SUM(cgst + sgst + igst) as sum FROM orders WHERE facility_id = ? AND status != 'DRAFT' AND status != 'CANCELLED'").get(user.org_id) as any).sum || 0;
+    statusDist = db.prepare('SELECT status as name, COUNT(*) as value FROM orders WHERE facility_id = ? GROUP BY status').all(user.org_id);
+    revenueTrend = db.prepare("SELECT date(created_at) as name, SUM(total) as revenue FROM orders WHERE facility_id = ? GROUP BY date(created_at) ORDER BY date(created_at) DESC LIMIT 7").all(user.org_id).reverse();
+  }
 
   res.json({
     total_orders: totalOrders,
