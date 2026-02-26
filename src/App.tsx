@@ -173,7 +173,8 @@ export default function App() {
 
   const addProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     const res = await fetch('/api/products', {
       method: 'POST',
       headers: { 
@@ -187,7 +188,7 @@ export default function App() {
       })
     });
     if (res.ok) {
-      e.currentTarget.reset();
+      form.reset();
       fetchData();
     }
   };

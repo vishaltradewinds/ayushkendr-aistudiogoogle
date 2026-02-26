@@ -13,7 +13,7 @@ export default function Landing({ onEnterPortal }: LandingProps) {
       <div className="bg-slate-900 text-white text-xs py-2 px-6 relative z-[60]">
         <div className="max-w-7xl mx-auto w-full flex justify-between items-center">
           <span className="flex items-center gap-2 font-medium tracking-wide">
-            <Globe className="w-3 h-3 text-emerald-400" /> Part of ALLIANCEVENTURES: The founder-led, mission-aligned venture group.
+            <Globe className="w-3 h-3 text-emerald-400" /> A Venture of ALLIANCEVENTURES
           </span>
           <div className="relative group">
             <button className="flex items-center gap-1 hover:text-emerald-400 transition-colors font-medium">
