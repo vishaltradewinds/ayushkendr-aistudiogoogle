@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ShieldCheck, Truck, FileText, Activity, ArrowRight, Globe, Building2, Stethoscope } from 'lucide-react';
+import { ShieldCheck, Truck, FileText, Activity, ArrowRight, Globe, Building2, Stethoscope, ChevronDown } from 'lucide-react';
 
 interface LandingProps {
   onEnterPortal: () => void;
@@ -9,8 +9,27 @@ interface LandingProps {
 export default function Landing({ onEnterPortal }: LandingProps) {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 overflow-x-hidden">
+      {/* Ecosystem Banner */}
+      <div className="bg-slate-900 text-white text-xs py-2 px-6 relative z-[60]">
+        <div className="max-w-7xl mx-auto w-full flex justify-between items-center">
+          <span className="flex items-center gap-2 font-medium tracking-wide">
+            <Globe className="w-3 h-3 text-emerald-400" /> Part of ALLIANCEVENTURES: The founder-led, mission-aligned venture group.
+          </span>
+          <div className="relative group">
+            <button className="flex items-center gap-1 hover:text-emerald-400 transition-colors font-medium">
+              Explore Verticals <ChevronDown className="w-3 h-3" />
+            </button>
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white text-slate-900 rounded-xl shadow-xl border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all overflow-hidden">
+              <a href="https://rupaykg.com" target="_blank" rel="noopener noreferrer" className="block px-4 py-3 hover:bg-emerald-50 hover:text-emerald-700 text-sm font-medium border-b border-slate-100 transition-colors">RupayKg (Sustainability)</a>
+              <a href="https://vyaparkendra.com" target="_blank" rel="noopener noreferrer" className="block px-4 py-3 hover:bg-emerald-50 hover:text-emerald-700 text-sm font-medium border-b border-slate-100 transition-colors">VyaparKendra (Commerce)</a>
+              <a href="#" className="block px-4 py-3 hover:bg-emerald-50 hover:text-emerald-700 text-sm font-bold transition-colors">AyushKendra (Health-Tech)</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 z-50">
+      <nav className="sticky top-0 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 z-50">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-emerald-500 text-white p-2 rounded-xl">
@@ -148,7 +167,7 @@ export default function Landing({ onEnterPortal }: LandingProps) {
             <span className="text-xl font-bold text-slate-900">AyushKendra</span>
           </div>
           <p className="text-slate-500 text-sm">
-            © {new Date().getFullYear()} AyushKendra. Powered by AllianceVenture.
+            © {new Date().getFullYear()} AyushKendra. Powered by <a href="https://allianceventures.com" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">ALLIANCEVENTURES</a>.
           </p>
           <div className="flex gap-6 text-sm text-slate-500">
             <a href="#" className="hover:text-emerald-600">Privacy Policy</a>

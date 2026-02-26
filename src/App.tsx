@@ -1,4 +1,4 @@
-import { Activity, LayoutDashboard, ShoppingCart, Users, Settings, ShieldCheck, Package, IndianRupee, TrendingUp, RefreshCw, Trash2, CheckCircle2, FileText, Truck, FileSearch } from 'lucide-react';
+import { Activity, LayoutDashboard, ShoppingCart, Users, Settings, ShieldCheck, Package, IndianRupee, TrendingUp, RefreshCw, Trash2, CheckCircle2, FileText, Truck, FileSearch, Globe, ChevronDown } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -351,7 +351,9 @@ export default function App() {
         </nav>
 
         <div className="p-4 border-t border-slate-800">
-          <p className="text-[10px] text-slate-500 text-center mb-4 uppercase tracking-widest">Powered by AllianceVenture</p>
+          <p className="text-[10px] text-slate-500 text-center mb-4 uppercase tracking-widest">
+            Powered by <a href="https://allianceventures.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">ALLIANCEVENTURES</a>
+          </p>
           <button 
             onClick={logout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-red-500/10 hover:text-red-400 transition-colors"
@@ -378,6 +380,19 @@ export default function App() {
               </p>
             </div>
             <div className="flex items-center gap-4">
+              {/* Ecosystem Dropdown */}
+              <div className="relative group z-50">
+                <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm">
+                  <Globe className="w-4 h-4 text-emerald-400" />
+                  ALLIANCEVENTURES <ChevronDown className="w-4 h-4" />
+                </button>
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white text-slate-900 rounded-xl shadow-xl border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all overflow-hidden">
+                  <a href="https://rupaykg.com" target="_blank" rel="noopener noreferrer" className="block px-4 py-3 hover:bg-emerald-50 hover:text-emerald-700 text-sm font-medium border-b border-slate-100 transition-colors">RupayKg (Sustainability)</a>
+                  <a href="https://vyaparkendra.com" target="_blank" rel="noopener noreferrer" className="block px-4 py-3 hover:bg-emerald-50 hover:text-emerald-700 text-sm font-medium border-b border-slate-100 transition-colors">VyaparKendra (Commerce)</a>
+                  <a href="#" className="block px-4 py-3 hover:bg-emerald-50 hover:text-emerald-700 text-sm font-bold transition-colors">AyushKendra (Health-Tech)</a>
+                </div>
+              </div>
+
               <button 
                 onClick={fetchData}
                 className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
