@@ -411,71 +411,106 @@ export default function App() {
           </header>
 
           {/* Tab Content */}
-          {activeTab === 'home' && (
+          {activeTab === 'home' && analytics && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-8"
             >
-              {['SUPER_ADMIN', 'COMPANY_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'].includes(user.role) && analytics && (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
-                      <div className="bg-blue-50 text-blue-600 p-4 rounded-2xl">
-                        <ShoppingCart className="w-8 h-8" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Orders</p>
-                        <p className="text-3xl font-black text-slate-900">{analytics.total_orders}</p>
-                      </div>
+              {['SUPER_ADMIN', 'COMPANY_ADMIN'].includes(user.role) && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-blue-50 text-blue-600 p-4 rounded-2xl">
+                      <ShoppingCart className="w-8 h-8" />
                     </div>
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
-                      <div className="bg-emerald-50 text-emerald-600 p-4 rounded-2xl">
-                        <IndianRupee className="w-8 h-8" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Revenue</p>
-                        <p className="text-3xl font-black text-slate-900">₹{(analytics.total_revenue || 0).toLocaleString()}</p>
-                      </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
-                      <div className="bg-amber-50 text-amber-600 p-4 rounded-2xl">
-                        <FileText className="w-8 h-8" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">GST Collected</p>
-                        <p className="text-3xl font-black text-slate-900">₹{(analytics.gst_collected || 0).toLocaleString()}</p>
-                      </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Orders</p>
+                      <p className="text-3xl font-black text-slate-900">{analytics.total_orders}</p>
                     </div>
                   </div>
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-emerald-50 text-emerald-600 p-4 rounded-2xl">
+                      <IndianRupee className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Revenue</p>
+                      <p className="text-3xl font-black text-slate-900">₹{(analytics.total_revenue || 0).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-amber-50 text-amber-600 p-4 rounded-2xl">
+                      <FileText className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">GST Collected</p>
+                      <p className="text-3xl font-black text-slate-900">₹{(analytics.gst_collected || 0).toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-                      <h3 className="text-lg font-bold text-slate-900 mb-6">Order Status Distribution</h3>
-                      <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={analytics.status_distribution}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={60}
-                              outerRadius={100}
-                              paddingAngle={5}
-                              dataKey="value"
-                            >
-                              {analytics.status_distribution.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                            <Legend />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
+              {user.role === 'GOVERNMENT_VIEW' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-amber-50 text-amber-600 p-4 rounded-2xl">
+                      <ShieldCheck className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Tax Revenue (GST)</p>
+                      <p className="text-3xl font-black text-slate-900">₹{(analytics.gst_collected || 0).toLocaleString()}</p>
                     </div>
                   </div>
-                </>
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-emerald-50 text-emerald-600 p-4 rounded-2xl">
+                      <TrendingUp className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Transaction Volume</p>
+                      <p className="text-3xl font-black text-slate-900">₹{(analytics.total_revenue || 0).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-blue-50 text-blue-600 p-4 rounded-2xl">
+                      <Activity className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Orders Processed</p>
+                      <p className="text-3xl font-black text-slate-900">{analytics.total_orders}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {user.role === 'ADMIN_VIEW' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-blue-50 text-blue-600 p-4 rounded-2xl">
+                      <ShoppingCart className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Operational Volume</p>
+                      <p className="text-3xl font-black text-slate-900">{analytics.total_orders}</p>
+                    </div>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-emerald-50 text-emerald-600 p-4 rounded-2xl">
+                      <IndianRupee className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Platform GMV</p>
+                      <p className="text-3xl font-black text-slate-900">₹{(analytics.total_revenue || 0).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="bg-purple-50 text-purple-600 p-4 rounded-2xl">
+                      <Users className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Active Users</p>
+                      <p className="text-3xl font-black text-slate-900">System Wide</p>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {user.role === 'VENDOR_ADMIN' && (
@@ -486,7 +521,7 @@ export default function App() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">My Orders</p>
-                      <p className="text-3xl font-black text-slate-900">{orders.length}</p>
+                      <p className="text-3xl font-black text-slate-900">{analytics.total_orders}</p>
                     </div>
                   </div>
                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
@@ -495,7 +530,7 @@ export default function App() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">My Revenue</p>
-                      <p className="text-3xl font-black text-slate-900">₹{orders.reduce((acc, o) => acc + o.total, 0).toLocaleString()}</p>
+                      <p className="text-3xl font-black text-slate-900">₹{(analytics.total_revenue || 0).toLocaleString()}</p>
                     </div>
                   </div>
                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
@@ -518,7 +553,7 @@ export default function App() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Orders Placed</p>
-                      <p className="text-3xl font-black text-slate-900">{orders.length}</p>
+                      <p className="text-3xl font-black text-slate-900">{analytics.total_orders}</p>
                     </div>
                   </div>
                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
@@ -527,7 +562,7 @@ export default function App() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Spent</p>
-                      <p className="text-3xl font-black text-slate-900">₹{orders.reduce((acc, o) => acc + o.total, 0).toLocaleString()}</p>
+                      <p className="text-3xl font-black text-slate-900">₹{(analytics.total_revenue || 0).toLocaleString()}</p>
                     </div>
                   </div>
                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex items-center gap-4">
@@ -535,12 +570,60 @@ export default function App() {
                       <RefreshCw className="w-8 h-8" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Pending Orders</p>
-                      <p className="text-3xl font-black text-slate-900">{orders.filter(o => o.status === 'PENDING').length}</p>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Pending Deliveries</p>
+                      <p className="text-3xl font-black text-slate-900">{orders.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED').length}</p>
                     </div>
                   </div>
                 </div>
               )}
+
+              {/* Shared Charts Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                  <h3 className="text-lg font-bold text-slate-900 mb-6">Order Status Distribution</h3>
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={analytics.status_distribution}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={100}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {analytics.status_distribution.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {user.role !== 'FACILITY_ADMIN' && (
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                    <h3 className="text-lg font-bold text-slate-900 mb-6">Revenue Trend (Last 7 Days)</h3>
+                    <div className="h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={analytics.revenue_trend}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dy={10} />
+                          <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dx={-10} tickFormatter={(value) => `₹${value/1000}k`} />
+                          <Tooltip 
+                            cursor={{fill: '#f1f5f9'}}
+                            contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
+                          />
+                          <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
 
