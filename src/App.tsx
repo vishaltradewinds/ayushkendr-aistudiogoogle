@@ -71,34 +71,20 @@ export default function App() {
     try {
       const headers = { Authorization: `Bearer ${user.token}` };
       
-      const requests = [
+      const [ordersRes, productsRes, analyticsRes] = await Promise.all([
         fetch('/api/orders', { headers }),
         fetch('/api/products', { headers }),
         fetch('/api/analytics/summary', { headers })
-      ];
+      ]);
+
+      if (ordersRes.ok) setOrders(await ordersRes.json());
+      if (productsRes.ok) setProducts(await productsRes.json());
+      if (analyticsRes.ok) setAnalytics(await analyticsRes.json());
 
       if (['SUPER_ADMIN', 'GOVERNMENT_VIEW'].includes(user.role)) {
-        requests.push(fetch('/api/audit', { headers }));
+        const auditRes = await fetch('/api/audit', { headers });
+        if (auditRes.ok) setAuditLogs(await auditRes.json());
       }
-
-      const responses = await Promise.all(requests);
-      
-      const ordersData = await responses[0].json();
-      const productsData = await responses[1].json();
-      
-      setOrders(ordersData);
-      setProducts(productsData);
-
-      if (responses[2] && responses[2].url.includes('analytics')) {
-        setAnalytics(await responses[2].json());
-      }
-      
-      if (responses[3] && responses[3].url.includes('audit')) {
-        setAuditLogs(await responses[3].json());
-      } else if (responses[2] && responses[2].url.includes('audit')) {
-        setAuditLogs(await responses[2].json());
-      }
-
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -614,7 +600,7 @@ export default function App() {
                     
                     {user.role === 'FACILITY_ADMIN' && (
                       <button 
-                        onClick={() => createOrder(product.id, product.price)}
+                        onClick={() => createOrder(product.id, 1)}
                         className="w-full mt-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
                       >
                         <ShoppingCart className="w-4 h-4" />
