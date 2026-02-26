@@ -20,14 +20,18 @@ const app = express();
 app.set('trust proxy', 1);
 const PORT = 3000;
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/ayushkendra";
+const MONGO_URI = process.env.MONGO_URI;
 const INTERNAL_TOKEN = process.env.INTERNAL_SERVICE_TOKEN || "super_internal_token";
 
-mongoose.connect(MONGO_URI).then(() => {
-  console.log("Connected to MongoDB");
-}).catch(err => {
-  console.error("MongoDB connection error:", err);
-});
+if (MONGO_URI) {
+  mongoose.connect(MONGO_URI).then(() => {
+    console.log("Connected to MongoDB");
+  }).catch(err => {
+    console.error("MongoDB connection error:", err.message);
+  });
+} else {
+  console.log("MONGO_URI not provided, skipping MongoDB connection. Using SQLite fallback.");
+}
 
 // Generate RS256 keys if they don't exist
 if (!fs.existsSync('private.pem') || !fs.existsSync('public.pem')) {
