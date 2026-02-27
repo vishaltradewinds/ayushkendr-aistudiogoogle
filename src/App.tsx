@@ -65,6 +65,44 @@ export default function App() {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [showLanding, setShowLanding] = useState(true);
 
+  // Role-based navigation logic
+  useEffect(() => {
+    if (user) {
+      const allowedTabs = [
+        { id: 'home', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'] },
+        { id: 'products', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN'] },
+        { id: 'orders', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN'] },
+        { id: 'audit', roles: ['SUPER_ADMIN', 'GOVERNMENT_VIEW'] },
+      ].filter(t => t.roles.includes(user.role)).map(t => t.id);
+
+      // Security guard: if current tab is not allowed, redirect to first allowed tab
+      if (!allowedTabs.includes(activeTab)) {
+        setActiveTab(allowedTabs[0] || 'home');
+      }
+    }
+  }, [user, activeTab]);
+
+  // Initial redirection upon login
+  useEffect(() => {
+    if (user) {
+      const hasRedirected = sessionStorage.getItem('ayush_redirected');
+      if (!hasRedirected) {
+        const roleToTab: Record<string, string> = {
+          'SUPER_ADMIN': 'home',
+          'COMPANY_ADMIN': 'home',
+          'VENDOR_ADMIN': 'home',
+          'FACILITY_ADMIN': 'products',
+          'GOVERNMENT_VIEW': 'audit',
+          'ADMIN_VIEW': 'home'
+        };
+        setActiveTab(roleToTab[user.role] || 'home');
+        sessionStorage.setItem('ayush_redirected', 'true');
+      }
+    } else {
+      sessionStorage.removeItem('ayush_redirected');
+    }
+  }, [user]);
+
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
@@ -134,6 +172,7 @@ export default function App() {
 
   const logout = () => {
     localStorage.removeItem('ayush_user');
+    sessionStorage.removeItem('ayush_redirected');
     setUser(null);
     setShowLanding(true);
   };
