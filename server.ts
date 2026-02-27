@@ -62,6 +62,26 @@ const db = new Database('enterprise.db');
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+// Ensure new columns exist for existing databases
+try { db.exec("ALTER TABLE organizations ADD COLUMN rating REAL DEFAULT 4.5"); } catch (e) {}
+try { db.exec("ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 10"); } catch (e) {}
+try { db.exec("ALTER TABLE products ADD COLUMN description TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE products ADD COLUMN specifications TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE products ADD COLUMN images TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1"); } catch (e) {}
+
+// Seed dummy details for existing products if they are empty
+const productsWithoutDetails = db.prepare('SELECT id FROM products WHERE description IS NULL').all();
+for (const p of (productsWithoutDetails as any[])) {
+  db.prepare(`
+    UPDATE products 
+    SET description = 'High-quality medical equipment designed for professional healthcare environments. This product meets all international standards for safety and performance.',
+        specifications = '{"Material": "Medical Grade Steel", "Warranty": "2 Years", "Origin": "India", "Certification": "ISO 9001"}',
+        images = '["https://picsum.photos/seed/med1/800/800", "https://picsum.photos/seed/med2/800/800"]'
+    WHERE id = ?
+  `).run(p.id);
+}
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS organizations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,6 +90,7 @@ db.exec(`
     gstin TEXT,
     is_active BOOLEAN DEFAULT 1,
     kyc_status TEXT DEFAULT 'PENDING',
+    rating REAL DEFAULT 4.5,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -89,8 +110,20 @@ db.exec(`
     name TEXT NOT NULL,
     category TEXT NOT NULL,
     price REAL NOT NULL,
+    stock INTEGER DEFAULT 10,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(vendor_id) REFERENCES organizations(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS product_reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    rating INTEGER NOT NULL,
+    comment TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(product_id) REFERENCES products(id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
   );
 
   CREATE TABLE IF NOT EXISTS orders (
@@ -192,7 +225,28 @@ authRouter.post('/login', (req, res) => {
   }
   const token = jwt.sign({ id: user.id, org_id: user.org_id, email: user.email, role: user.role }, privateKey, { algorithm: 'RS256', expiresIn: '24h' });
   logAudit(user.id, user.role, 'USER_LOGIN', 'USER', user.id, req.ip || '');
-  res.json({ access_token: token, role: user.role, org_id: user.org_id });
+  res.json({ access_token: token, role: user.role, org_id: user.org_id, email: user.email });
+});
+
+authRouter.get('/me', authenticate, (req, res) => {
+  const user: any = db.prepare('SELECT id, email, role, org_id, created_at FROM users WHERE id = ?').get((req as any).user.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  res.json(user);
+});
+
+authRouter.post('/change-password', authenticate, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const userId = (req as any).user.id;
+  const user: any = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+  
+  if (!user || !bcrypt.compareSync(currentPassword, user.password)) {
+    return res.status(401).json({ error: 'Invalid current password' });
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedPassword, userId);
+  logAudit(userId, user.role, 'PASSWORD_CHANGED', 'USER', userId, req.ip || '');
+  res.json({ success: true });
 });
 
 app.use('/api/auth', authRouter);
@@ -214,15 +268,79 @@ app.get('/internal/metrics', async (req, res) => {
 });
 
 app.get('/api/products', authenticate, (req, res) => {
-  const products = db.prepare('SELECT * FROM products').all();
+  const products = db.prepare(`
+    SELECT p.*, o.name as vendor_name, o.rating as vendor_rating 
+    FROM products p 
+    JOIN organizations o ON p.vendor_id = o.id
+  `).all();
   res.json(products);
 });
 
 app.post('/api/products', authenticate, authorize(['SUPER_ADMIN', 'COMPANY_ADMIN', 'VENDOR_ADMIN']), (req, res) => {
-  const { name, category, price } = req.body;
+  const { name, category, price, stock, description, specifications, images } = req.body;
   const vendor_id = (req as any).user.org_id;
-  const info = db.prepare('INSERT INTO products (vendor_id, name, category, price) VALUES (?, ?, ?, ?)').run(vendor_id, name, category, price);
+  const info = db.prepare('INSERT INTO products (vendor_id, name, category, price, stock, description, specifications, images) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(vendor_id, name, category, price, stock || 10, description || null, specifications || null, images || null);
   logAudit((req as any).user.id, (req as any).user.role, 'PRODUCT_CREATED', 'PRODUCT', info.lastInsertRowid as number, req.ip || '');
+  res.json({ id: info.lastInsertRowid });
+});
+
+app.delete('/api/products/:id', authenticate, authorize(['SUPER_ADMIN', 'VENDOR_ADMIN']), (req, res) => {
+  const user = (req as any).user;
+  const product: any = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  
+  if (!product) return res.status(404).json({ error: 'Product not found' });
+
+  // Ownership check for VENDOR_ADMIN
+  if (user.role === 'VENDOR_ADMIN' && product.vendor_id !== user.org_id) {
+    logAudit(user.id, user.role, 'UNAUTHORIZED_PRODUCT_DELETE_ATTEMPT', 'PRODUCT', Number(req.params.id), req.ip || '');
+    return res.status(403).json({ error: 'Forbidden: You do not own this product' });
+  }
+
+  db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
+  logAudit(user.id, user.role, 'PRODUCT_DELETED', 'PRODUCT', Number(req.params.id), req.ip || '');
+  res.json({ success: true });
+});
+
+app.put('/api/products/:id', authenticate, authorize(['SUPER_ADMIN', 'VENDOR_ADMIN']), (req, res) => {
+  const user = (req as any).user;
+  const { name, category, price, stock, description, specifications, images } = req.body;
+  const product: any = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  
+  if (!product) return res.status(404).json({ error: 'Product not found' });
+
+  // Ownership check for VENDOR_ADMIN
+  if (user.role === 'VENDOR_ADMIN' && product.vendor_id !== user.org_id) {
+    logAudit(user.id, user.role, 'UNAUTHORIZED_PRODUCT_UPDATE_ATTEMPT', 'PRODUCT', Number(req.params.id), req.ip || '');
+    return res.status(403).json({ error: 'Forbidden: You do not own this product' });
+  }
+
+  db.prepare('UPDATE products SET name = ?, category = ?, price = ?, stock = ?, description = ?, specifications = ?, images = ? WHERE id = ?')
+    .run(name, category, price, stock, description || null, specifications || null, images || null, req.params.id);
+    
+  logAudit(user.id, user.role, 'PRODUCT_UPDATED', 'PRODUCT', Number(req.params.id), req.ip || '');
+  res.json({ success: true });
+});
+
+app.get('/api/products/:id/reviews', authenticate, (req, res) => {
+  const reviews = db.prepare(`
+    SELECT r.*, u.email as user_email 
+    FROM product_reviews r 
+    JOIN users u ON r.user_id = u.id 
+    WHERE r.product_id = ?
+    ORDER BY r.created_at DESC
+  `).all(req.params.id);
+  res.json(reviews);
+});
+
+app.post('/api/products/:id/reviews', authenticate, (req, res) => {
+  const { rating, comment } = req.body;
+  const user_id = (req as any).user.id;
+  const product_id = req.params.id;
+  
+  const info = db.prepare('INSERT INTO product_reviews (product_id, user_id, rating, comment) VALUES (?, ?, ?, ?)')
+    .run(product_id, user_id, rating, comment);
+    
   res.json({ id: info.lastInsertRowid });
 });
 
@@ -263,14 +381,37 @@ app.post('/api/orders', authenticate, authorize(['FACILITY_ADMIN', 'SUPER_ADMIN'
 
 app.put('/api/orders/:id/status', authenticate, authorize(['SUPER_ADMIN', 'VENDOR_ADMIN']), (req, res) => {
   const { status } = req.body;
+  const user = (req as any).user;
+  
+  const order: any = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+
+  // Ownership check for VENDOR_ADMIN
+  if (user.role === 'VENDOR_ADMIN' && order.vendor_id !== user.org_id) {
+    logAudit(user.id, user.role, 'UNAUTHORIZED_ORDER_UPDATE_ATTEMPT', 'ORDER', Number(req.params.id), req.ip || '');
+    return res.status(403).json({ error: 'Forbidden: You do not own this order' });
+  }
+
   db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, req.params.id);
-  logAudit((req as any).user.id, (req as any).user.role, 'ORDER_STATUS_UPDATED', 'ORDER', Number(req.params.id), req.ip || '');
+  logAudit(user.id, user.role, 'ORDER_STATUS_UPDATED', 'ORDER', Number(req.params.id), req.ip || '');
   res.json({ success: true });
 });
 
 app.get('/api/orders/invoice/:id', authenticate, (req, res) => {
+  const user = (req as any).user;
   const order: any = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
+  
+  // Access control: Only involved parties or admins
+  const isAuthorized = 
+    ['SUPER_ADMIN', 'COMPANY_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'].includes(user.role) ||
+    (user.role === 'VENDOR_ADMIN' && order.vendor_id === user.org_id) ||
+    (user.role === 'FACILITY_ADMIN' && order.facility_id === user.org_id);
+
+  if (!isAuthorized) {
+    logAudit(user.id, user.role, 'UNAUTHORIZED_INVOICE_ACCESS', 'ORDER', Number(req.params.id), req.ip || '');
+    return res.status(403).json({ error: 'Forbidden: Access denied' });
+  }
   
   const doc = new PDFDocument();
   res.setHeader('Content-Type', 'application/pdf');
@@ -326,6 +467,61 @@ app.get('/api/analytics/summary', authenticate, (req, res) => {
 app.get('/api/audit', authenticate, authorize(['SUPER_ADMIN', 'GOVERNMENT_VIEW']), (req, res) => {
   const logs = db.prepare('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 100').all();
   res.json(logs);
+});
+
+app.get('/api/users', authenticate, authorize(['SUPER_ADMIN', 'COMPANY_ADMIN']), (req, res) => {
+  const user = (req as any).user;
+  let users;
+  if (user.role === 'SUPER_ADMIN') {
+    users = db.prepare(`
+      SELECT u.id, u.email, u.role, u.is_active, u.created_at, o.name as org_name 
+      FROM users u 
+      LEFT JOIN organizations o ON u.org_id = o.id
+    `).all();
+  } else {
+    users = db.prepare(`
+      SELECT u.id, u.email, u.role, u.is_active, u.created_at, o.name as org_name 
+      FROM users u 
+      LEFT JOIN organizations o ON u.org_id = o.id
+      WHERE u.org_id = ?
+    `).all(user.org_id);
+  }
+  res.json(users);
+});
+
+app.post('/api/users', authenticate, authorize(['SUPER_ADMIN', 'COMPANY_ADMIN']), async (req, res) => {
+  const { email, password, role, org_id } = req.body;
+  const admin = (req as any).user;
+  
+  // Security check: COMPANY_ADMIN can only create users for their own org
+  const targetOrgId = admin.role === 'SUPER_ADMIN' ? org_id : admin.org_id;
+  
+  const hashedPassword = await bcrypt.hash(password, 10);
+  try {
+    const info = db.prepare('INSERT INTO users (email, password, role, org_id) VALUES (?, ?, ?, ?)')
+      .run(email, hashedPassword, role, targetOrgId);
+    logAudit(admin.id, admin.role, 'USER_CREATED', 'USER', info.lastInsertRowid as number, req.ip || '');
+    res.json({ id: info.lastInsertRowid });
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.put('/api/users/:id/status', authenticate, authorize(['SUPER_ADMIN', 'COMPANY_ADMIN']), (req, res) => {
+  const { is_active } = req.body;
+  const admin = (req as any).user;
+  const targetUser: any = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+  
+  if (!targetUser) return res.status(404).json({ error: 'User not found' });
+  
+  // Security check: COMPANY_ADMIN can only manage users in their org
+  if (admin.role === 'COMPANY_ADMIN' && targetUser.org_id !== admin.org_id) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(is_active ? 1 : 0, req.params.id);
+  logAudit(admin.id, admin.role, 'USER_STATUS_UPDATED', 'USER', Number(req.params.id), req.ip || '');
+  res.json({ success: true });
 });
 
 async function startServer() {
