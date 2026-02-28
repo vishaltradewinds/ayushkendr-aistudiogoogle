@@ -98,6 +98,10 @@ export default function App() {
   const [editingProduct, setEditingProduct] = useState<number | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [productQuantities, setProductQuantities] = useState<Record<number, number>>({});
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersTotalPages, setOrdersTotalPages] = useState(1);
+  const ordersLimit = 10;
+
   const [user, setUser] = useState<{ email: string; role: string; token: string; org_id?: number } | null>(() => {
     const saved = localStorage.getItem('ayush_user');
     return saved ? JSON.parse(saved) : null;
@@ -144,19 +148,36 @@ export default function App() {
     }
   }, [user]);
 
+  const fetchOrders = async () => {
+    if (!user) return;
+    try {
+      const headers = { Authorization: `Bearer ${user.token}` };
+      const res = await fetch(`/api/orders?page=${ordersPage}&limit=${ordersLimit}`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(data.data);
+        setOrdersTotalPages(data.totalPages);
+      }
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, [ordersPage, user]);
+
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
     try {
       const headers = { Authorization: `Bearer ${user.token}` };
       
-      const [ordersRes, productsRes, analyticsRes] = await Promise.all([
-        fetch('/api/orders', { headers }),
+      const [productsRes, analyticsRes] = await Promise.all([
         fetch('/api/products', { headers }),
         fetch('/api/analytics/summary', { headers })
       ]);
 
-      if (ordersRes.ok) setOrders(await ordersRes.json());
       if (productsRes.ok) setProducts(await productsRes.json());
       if (analyticsRes.ok) setAnalytics(await analyticsRes.json());
 
@@ -172,6 +193,8 @@ export default function App() {
         const auditRes = await fetch('/api/audit', { headers });
         if (auditRes.ok) setAuditLogs(await auditRes.json());
       }
+      
+      await fetchOrders();
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -1621,16 +1644,31 @@ export default function App() {
                           <td className="p-4 text-slate-600">{new Date(order.created_at).toLocaleDateString()}</td>
                           <td className="p-4 font-medium text-slate-900">₹{order.total.toLocaleString()}</td>
                           <td className="p-4">
-                            <span className={cn(
-                              "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                              order.status === 'DELIVERED' ? "bg-emerald-100 text-emerald-700" :
-                              order.status === 'SHIPPED' ? "bg-blue-100 text-blue-700" :
-                              order.status === 'PROCESSING' ? "bg-indigo-100 text-indigo-700" :
-                              order.status === 'CANCELLED' ? "bg-red-100 text-red-700" :
-                              "bg-amber-100 text-amber-700"
-                            )}>
-                              {order.status.replace('_', ' ')}
-                            </span>
+                            <div className="flex flex-col gap-2">
+                              <span className={cn(
+                                "w-fit px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                                order.status === 'DELIVERED' ? "bg-emerald-100 text-emerald-700" :
+                                order.status === 'SHIPPED' ? "bg-blue-100 text-blue-700" :
+                                order.status === 'PROCESSING' ? "bg-indigo-100 text-indigo-700" :
+                                order.status === 'CANCELLED' ? "bg-red-100 text-red-700" :
+                                "bg-amber-100 text-amber-700"
+                              )}>
+                                {order.status.replace('_', ' ')}
+                              </span>
+                              {order.status !== 'CANCELLED' && (
+                                <div className="flex items-center gap-1 mt-1" title="Order Tracking Progress">
+                                  {[1, 2, 3, 4].map(step => {
+                                    const currentStep = order.status === 'PENDING' ? 1 : order.status === 'PROCESSING' ? 2 : order.status === 'SHIPPED' ? 3 : order.status === 'DELIVERED' ? 4 : 0;
+                                    return (
+                                      <div key={step} className={cn(
+                                        "h-1.5 w-8 rounded-full transition-colors",
+                                        currentStep >= step ? "bg-emerald-500" : "bg-slate-200"
+                                      )} />
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="p-4 flex gap-2">
                             {(order.status === 'SHIPPED' || order.status === 'DELIVERED') && (
@@ -1695,6 +1733,29 @@ export default function App() {
                     </tbody>
                   </table>
                 </div>
+                {ordersTotalPages > 1 && (
+                  <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
+                    <span className="text-sm text-slate-500 font-medium">
+                      Page {ordersPage} of {ordersTotalPages}
+                    </span>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setOrdersPage(p => Math.max(1, p - 1))}
+                        disabled={ordersPage === 1}
+                        className="px-4 py-2 text-sm font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                      >
+                        Previous
+                      </button>
+                      <button 
+                        onClick={() => setOrdersPage(p => Math.min(ordersTotalPages, p + 1))}
+                        disabled={ordersPage === ordersTotalPages}
+                        className="px-4 py-2 text-sm font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

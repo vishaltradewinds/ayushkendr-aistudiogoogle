@@ -62,26 +62,6 @@ const db = new Database('enterprise.db');
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-// Ensure new columns exist for existing databases
-try { db.exec("ALTER TABLE organizations ADD COLUMN rating REAL DEFAULT 4.5"); } catch (e) {}
-try { db.exec("ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 10"); } catch (e) {}
-try { db.exec("ALTER TABLE products ADD COLUMN description TEXT"); } catch (e) {}
-try { db.exec("ALTER TABLE products ADD COLUMN specifications TEXT"); } catch (e) {}
-try { db.exec("ALTER TABLE products ADD COLUMN images TEXT"); } catch (e) {}
-try { db.exec("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1"); } catch (e) {}
-
-// Seed dummy details for existing products if they are empty
-const productsWithoutDetails = db.prepare('SELECT id FROM products WHERE description IS NULL').all();
-for (const p of (productsWithoutDetails as any[])) {
-  db.prepare(`
-    UPDATE products 
-    SET description = 'High-quality medical equipment designed for professional healthcare environments. This product meets all international standards for safety and performance.',
-        specifications = '{"Material": "Medical Grade Steel", "Warranty": "2 Years", "Origin": "India", "Certification": "ISO 9001"}',
-        images = '["https://picsum.photos/seed/med1/800/800", "https://picsum.photos/seed/med2/800/800"]'
-    WHERE id = ?
-  `).run(p.id);
-}
-
 db.exec(`
   CREATE TABLE IF NOT EXISTS organizations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,6 +134,26 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
+
+// Ensure new columns exist for existing databases
+try { db.exec("ALTER TABLE organizations ADD COLUMN rating REAL DEFAULT 4.5"); } catch (e) {}
+try { db.exec("ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 10"); } catch (e) {}
+try { db.exec("ALTER TABLE products ADD COLUMN description TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE products ADD COLUMN specifications TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE products ADD COLUMN images TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1"); } catch (e) {}
+
+// Seed dummy details for existing products if they are empty
+const productsWithoutDetails = db.prepare('SELECT id FROM products WHERE description IS NULL').all();
+for (const p of (productsWithoutDetails as any[])) {
+  db.prepare(`
+    UPDATE products 
+    SET description = 'High-quality medical equipment designed for professional healthcare environments. This product meets all international standards for safety and performance.',
+        specifications = '{"Material": "Medical Grade Steel", "Warranty": "2 Years", "Origin": "India", "Certification": "ISO 9001"}',
+        images = '["https://picsum.photos/seed/med1/800/800", "https://picsum.photos/seed/med2/800/800"]'
+    WHERE id = ?
+  `).run(p.id);
+}
 
 // Seed Admin
 const adminExists = db.prepare('SELECT * FROM users WHERE email = ?').get('admin@ayushkendra.com');
@@ -346,15 +346,31 @@ app.post('/api/products/:id/reviews', authenticate, (req, res) => {
 
 app.get('/api/orders', authenticate, (req, res) => {
   const user = (req as any).user;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const offset = (page - 1) * limit;
+
   let orders;
+  let total;
+
   if (['SUPER_ADMIN', 'COMPANY_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'].includes(user.role)) {
-    orders = db.prepare('SELECT * FROM orders ORDER BY created_at DESC').all();
+    total = (db.prepare('SELECT COUNT(*) as count FROM orders').get() as any).count;
+    orders = db.prepare('SELECT * FROM orders ORDER BY created_at DESC LIMIT ? OFFSET ?').all(limit, offset);
   } else if (user.role === 'VENDOR_ADMIN') {
-    orders = db.prepare('SELECT * FROM orders WHERE vendor_id = ? ORDER BY created_at DESC').all(user.org_id);
+    total = (db.prepare('SELECT COUNT(*) as count FROM orders WHERE vendor_id = ?').get(user.org_id) as any).count;
+    orders = db.prepare('SELECT * FROM orders WHERE vendor_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?').all(user.org_id, limit, offset);
   } else {
-    orders = db.prepare('SELECT * FROM orders WHERE facility_id = ? ORDER BY created_at DESC').all(user.org_id);
+    total = (db.prepare('SELECT COUNT(*) as count FROM orders WHERE facility_id = ?').get(user.org_id) as any).count;
+    orders = db.prepare('SELECT * FROM orders WHERE facility_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?').all(user.org_id, limit, offset);
   }
-  res.json(orders);
+  
+  res.json({
+    data: orders,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit)
+  });
 });
 
 app.post('/api/orders', authenticate, authorize(['FACILITY_ADMIN', 'SUPER_ADMIN']), (req, res) => {
