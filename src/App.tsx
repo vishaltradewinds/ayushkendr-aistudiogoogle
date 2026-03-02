@@ -672,6 +672,16 @@ export default function App() {
     { id: 'profile', icon: UserCircle, label: 'User Profile', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'] },
   ].filter(item => item.roles.includes(user.role));
 
+  const getCategoryColor = (category: string) => {
+    const cat = category.toLowerCase();
+    if (cat.includes('ayurveda')) return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+    if (cat.includes('yoga')) return 'bg-blue-50 text-blue-700 border-blue-100';
+    if (cat.includes('unani')) return 'bg-amber-50 text-amber-700 border-amber-100';
+    if (cat.includes('homeopathy')) return 'bg-purple-50 text-purple-700 border-purple-100';
+    if (cat.includes('diagnostic')) return 'bg-rose-50 text-rose-700 border-rose-100';
+    return 'bg-slate-50 text-slate-700 border-slate-100';
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
       
@@ -1420,37 +1430,54 @@ export default function App() {
                       </form>
                     ) : (
                       <>
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md uppercase tracking-widest">{product.category}</span>
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-900 mt-3 group-hover:text-emerald-600 transition-colors">{product.name}</h3>
-                            <div className="flex items-center gap-2 mt-2">
-                              <div className="flex items-center gap-1 text-amber-500">
-                                <Star className="w-3.5 h-3.5 fill-current" />
-                                <span className="text-xs font-bold">{product.vendor_rating}</span>
-                              </div>
-                              <span className="text-slate-300">|</span>
-                              <div className="flex items-center gap-2 text-slate-500">
-                                <Building2 className="w-3.5 h-3.5" />
-                                <span className="text-xs font-medium">{product.vendor_name}</span>
-                              </div>
-                            </div>
-                            <div className="mt-2">
-                              <span className={cn(
-                                "text-[10px] font-bold px-2 py-0.5 rounded-full",
-                                (product.stock || 0) > 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
-                              )}>
-                                {(product.stock || 0) > 0 ? `${product.stock} in stock` : 'Out of stock'}
-                              </span>
-                            </div>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-widest border",
+                            getCategoryColor(product.category)
+                          )}>
+                            {product.category}
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 mt-3 group-hover:text-emerald-600 transition-colors line-clamp-1">{product.name}</h3>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="flex items-center gap-1 text-amber-500">
+                            <Star className="w-3.5 h-3.5 fill-current" />
+                            <span className="text-xs font-bold">{product.vendor_rating}</span>
                           </div>
-                          <div className="text-right">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Price</p>
-                            <p className="text-xl font-black text-slate-900">₹{product.price.toLocaleString()}</p>
+                          <span className="text-slate-300">|</span>
+                          <div className="flex items-center gap-2 text-slate-500">
+                            <Building2 className="w-3.5 h-3.5" />
+                            <span className="text-xs font-medium truncate max-w-[120px]">{product.vendor_name}</span>
                           </div>
                         </div>
+                        <div className="mt-2">
+                          <span className={cn(
+                            "text-[10px] font-bold px-2 py-0.5 rounded-full",
+                            (product.stock || 0) > 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                          )}>
+                            {(product.stock || 0) > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Price</p>
+                        <p className="text-xl font-black text-slate-900">₹{product.price.toLocaleString()}</p>
+                      </div>
+                    </div>
+
+                    <div className="aspect-square bg-slate-50 rounded-2xl mb-4 overflow-hidden flex items-center justify-center p-4 border border-slate-100 group-hover:border-emerald-100 transition-colors">
+                      {(() => {
+                        let images = [];
+                        try { images = product.images ? JSON.parse(product.images) : []; } catch(e) {}
+                        return images[0] ? (
+                          <img src={images[0]} alt={product.name} className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                        ) : (
+                          <Package className="w-12 h-12 text-slate-200" />
+                        );
+                      })()}
+                    </div>
                         
                         <div className="mt-auto pt-6 border-t border-slate-50 flex flex-col gap-3">
                           <button 

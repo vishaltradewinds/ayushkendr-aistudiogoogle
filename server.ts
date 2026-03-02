@@ -143,6 +143,79 @@ try { db.exec("ALTER TABLE products ADD COLUMN specifications TEXT"); } catch (e
 try { db.exec("ALTER TABLE products ADD COLUMN images TEXT"); } catch (e) {}
 try { db.exec("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1"); } catch (e) {}
 
+// Seed initial products if none exist
+const productCount = (db.prepare('SELECT COUNT(*) as count FROM products').get() as any).count;
+if (productCount === 0) {
+  const vendor = db.prepare("SELECT id FROM organizations WHERE type = 'VENDOR' LIMIT 1").get() as any;
+  if (vendor) {
+    const initialProducts = [
+      {
+        name: 'Digital Sphygmomanometer',
+        category: 'Diagnostic Equipment',
+        price: 2450,
+        stock: 50,
+        description: 'Professional grade digital blood pressure monitor with high accuracy and large LCD display.',
+        specifications: '{"Accuracy": "±3mmHg", "Memory": "90 readings", "Power": "4 AA Batteries"}',
+        images: '["https://picsum.photos/seed/bp/800/800"]'
+      },
+      {
+        name: 'Ayurvedic Ashwagandha Extract',
+        category: 'AYUSH - Ayurveda',
+        price: 850,
+        stock: 200,
+        description: 'Pure organic Ashwagandha root extract for stress relief and vitality.',
+        specifications: '{"Form": "Capsules", "Quantity": "60 caps", "Purity": "95% Withanolides"}',
+        images: '["https://picsum.photos/seed/ashwa/800/800"]'
+      },
+      {
+        name: 'Professional Yoga Mat (6mm)',
+        category: 'AYUSH - Yoga',
+        price: 1200,
+        stock: 100,
+        description: 'Eco-friendly TPE yoga mat with non-slip texture and alignment lines.',
+        specifications: '{"Material": "TPE", "Thickness": "6mm", "Dimensions": "183x61cm"}',
+        images: '["https://picsum.photos/seed/yoga/800/800"]'
+      },
+      {
+        name: 'Pulse Oximeter OLED',
+        category: 'Diagnostic Equipment',
+        price: 1800,
+        stock: 150,
+        description: 'Fast and accurate SpO2 and pulse rate monitoring with multi-directional display.',
+        specifications: '{"Display": "OLED", "SpO2 Range": "70-100%", "Response Time": "8s"}',
+        images: '["https://picsum.photos/seed/oximeter/800/800"]'
+      },
+      {
+        name: 'Unani Herbal Cough Syrup',
+        category: 'AYUSH - Unani',
+        price: 180,
+        stock: 500,
+        description: 'Traditional Unani formulation for effective relief from dry and productive cough.',
+        specifications: '{"Volume": "100ml", "Ingredients": "Honey, Tulsi, Ginger", "Alcohol Free": "Yes"}',
+        images: '["https://picsum.photos/seed/unani/800/800"]'
+      },
+      {
+        name: 'Homeopathic Arnica Gel',
+        category: 'AYUSH - Homeopathy',
+        price: 320,
+        stock: 300,
+        description: 'Natural relief for muscle aches, stiffness, and swelling due to injuries.',
+        specifications: '{"Form": "Gel", "Weight": "45g", "Active Ingredient": "Arnica Montana"}',
+        images: '["https://picsum.photos/seed/arnica/800/800"]'
+      }
+    ];
+
+    const insertProduct = db.prepare(`
+      INSERT INTO products (vendor_id, name, category, price, stock, description, specifications, images)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const p of initialProducts) {
+      insertProduct.run(vendor.id, p.name, p.category, p.price, p.stock, p.description, p.specifications, p.images);
+    }
+  }
+}
+
 // Seed dummy details for existing products if they are empty
 const productsWithoutDetails = db.prepare('SELECT id FROM products WHERE description IS NULL').all();
 for (const p of (productsWithoutDetails as any[])) {
@@ -161,6 +234,14 @@ if (!adminExists) {
   const hash = bcrypt.hashSync('admin123', 10);
   const orgInfo = db.prepare("INSERT INTO organizations (name, type, kyc_status) VALUES ('AyushKendra HQ', 'INTERNAL', 'VERIFIED')").run();
   db.prepare("INSERT INTO users (org_id, email, password, role) VALUES (?, ?, ?, 'SUPER_ADMIN')").run(orgInfo.lastInsertRowid, 'admin@ayushkendra.com', hash);
+}
+
+// Seed Default Vendor
+const vendorExists = db.prepare("SELECT * FROM organizations WHERE type = 'VENDOR'").get();
+if (!vendorExists) {
+  const orgInfo = db.prepare("INSERT INTO organizations (name, type, kyc_status, rating) VALUES ('Global Medical Supplies', 'VENDOR', 'VERIFIED', 4.8)").run();
+  const hash = bcrypt.hashSync('vendor123', 10);
+  db.prepare("INSERT INTO users (org_id, email, password, role) VALUES (?, ?, ?, 'VENDOR_ADMIN')").run(orgInfo.lastInsertRowid, 'vendor@ayushkendra.com', hash);
 }
 
 function logAudit(actor_id: number | null, role: string | null, action: string, object_type: string, object_id: number | null, ip_address: string) {

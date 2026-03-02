@@ -145,6 +145,50 @@ export default function Landing({ onEnterPortal }: LandingProps) {
         </div>
       </section>
 
+      {/* Featured Products Preview */}
+      <section className="py-24 bg-slate-50 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Specialized Medical Catalogue</h2>
+              <p className="text-slate-600 max-w-xl">Browse our curated selection of high-quality medical devices and AYUSH healthcare supplies from verified manufacturers.</p>
+            </div>
+            <button 
+              onClick={onEnterPortal}
+              className="text-emerald-600 font-bold flex items-center gap-2 hover:gap-3 transition-all"
+            >
+              View Full Catalogue <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { name: 'Digital Sphygmomanometer', cat: 'Diagnostic', price: '₹2,450', img: 'https://picsum.photos/seed/bp/400/400' },
+              { name: 'Ashwagandha Extract', cat: 'Ayurveda', price: '₹850', img: 'https://picsum.photos/seed/ashwa/400/400' },
+              { name: 'Pulse Oximeter OLED', cat: 'Diagnostic', price: '₹1,800', img: 'https://picsum.photos/seed/oximeter/400/400' },
+              { name: 'Arnica Montana Gel', cat: 'Homeopathy', price: '₹320', img: 'https://picsum.photos/seed/arnica/400/400' }
+            ].map((p, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="bg-white p-4 rounded-3xl border border-slate-200 hover:shadow-xl transition-all group cursor-pointer"
+                onClick={onEnterPortal}
+              >
+                <div className="aspect-square bg-slate-50 rounded-2xl mb-4 overflow-hidden flex items-center justify-center p-4">
+                  <img src={p.img} alt={p.name} className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
+                </div>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md uppercase tracking-widest">{p.cat}</span>
+                <h3 className="font-bold text-slate-900 mt-2 line-clamp-1">{p.name}</h3>
+                <p className="text-lg font-black text-slate-900 mt-1">{p.price}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-24 px-6 bg-slate-900 text-white text-center">
         <div className="max-w-4xl mx-auto">
