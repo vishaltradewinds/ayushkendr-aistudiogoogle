@@ -6,6 +6,8 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Landing from './components/Landing';
 import ProductDetails from './components/ProductDetails';
+import LanguageSwitcher from './components/LanguageSwitcher';
+import QuickOrder from './components/QuickOrder';
 
 // Utility for tailwind classes
 function cn(...inputs: ClassValue[]) {
@@ -684,6 +686,7 @@ export default function App() {
   const navItems = [
     { id: 'home', icon: LayoutDashboard, label: 'Dashboard', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'] },
     { id: 'products', icon: Package, label: 'Catalogue', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN'] },
+    { id: 'quick-order', icon: FileText, label: 'Quick Order', roles: ['FACILITY_ADMIN'] },
     { id: 'cart', icon: ShoppingCart, label: 'Shopping Cart', roles: ['FACILITY_ADMIN'] },
     { id: 'users', icon: Users, label: 'User Management', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
     { id: 'orders', icon: IndianRupee, label: 'Procurement Log', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN'] },
@@ -772,6 +775,7 @@ export default function App() {
               </p>
             </div>
             <div className="flex items-center gap-4">
+              <LanguageSwitcher />
               {/* Ecosystem Dropdown */}
               <div className="relative group z-50">
                 <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm">
@@ -1440,6 +1444,13 @@ export default function App() {
           )}
         </motion.div>
       )}
+
+          {activeTab === 'quick-order' && (
+            <QuickOrder 
+              products={products} 
+              onAddToCart={addToCart} 
+            />
+          )}
 
           {activeTab === 'cart' && (
             <motion.div

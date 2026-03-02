@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { ShieldCheck, Truck, FileText, Activity, ArrowRight, Globe, Building2, Stethoscope, ChevronDown } from 'lucide-react';
+import LanguageSwitcher from './LanguageSwitcher';
 
 interface LandingProps {
   onEnterPortal: () => void;
@@ -42,12 +43,15 @@ export default function Landing({ onEnterPortal }: LandingProps) {
             <a href="#about" className="hover:text-emerald-600 transition-colors">About Us</a>
             <a href="#contact" className="hover:text-emerald-600 transition-colors">Contact</a>
           </div>
-          <button 
-            onClick={onEnterPortal}
-            className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-xl font-medium transition-all flex items-center gap-2"
-          >
-            Enter Portal <ArrowRight className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+            <button 
+              onClick={onEnterPortal}
+              className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-xl font-medium transition-all flex items-center gap-2"
+            >
+              Enter Portal <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </nav>
 
