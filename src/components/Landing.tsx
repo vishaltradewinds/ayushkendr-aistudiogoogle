@@ -39,6 +39,7 @@ export default function Landing({ onEnterPortal }: LandingProps) {
             <span className="text-2xl font-bold text-slate-900 tracking-tight">AyushKendra</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+            <a href="#" className="hover:text-emerald-600 transition-colors">Home</a>
             <a href="#features" className="hover:text-emerald-600 transition-colors">Features</a>
             <a href="#about" className="hover:text-emerald-600 transition-colors">About Us</a>
             <a href="#contact" className="hover:text-emerald-600 transition-colors">Contact</a>

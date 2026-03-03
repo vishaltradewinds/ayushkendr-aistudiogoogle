@@ -113,7 +113,18 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [showLanding, setShowLanding] = useState(true);
+  const [showLanding, setShowLanding] = useState(() => {
+    const savedUser = localStorage.getItem('ayush_user');
+    if (savedUser) return false;
+    
+    const savedShowLanding = sessionStorage.getItem('ayush_show_landing');
+    return savedShowLanding !== null ? savedShowLanding === 'true' : true;
+  });
+
+  // Update sessionStorage when showLanding changes
+  useEffect(() => {
+    sessionStorage.setItem('ayush_show_landing', showLanding.toString());
+  }, [showLanding]);
 
   // Role-based navigation logic
   useEffect(() => {
@@ -588,13 +599,24 @@ export default function App() {
   const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))];
   const brands = ['All', ...Array.from(new Set(products.map(p => p.vendor_name).filter(Boolean)))];
 
-  if (showLanding && !user) {
+  if (showLanding) {
     return <Landing onEnterPortal={() => setShowLanding(false)} />;
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 relative">
+        <div className="absolute top-6 left-6 flex items-center gap-4">
+          <button 
+            onClick={() => setShowLanding(true)}
+            className="text-slate-400 hover:text-white flex items-center gap-2 font-medium transition-colors"
+          >
+            <Globe className="w-5 h-5" /> Go to Home
+          </button>
+        </div>
+        <div className="absolute top-6 right-6">
+          <LanguageSwitcher />
+        </div>
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -742,10 +764,17 @@ export default function App() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-slate-800 space-y-2">
           <p className="text-[10px] text-slate-500 text-center mb-4 uppercase tracking-widest">
             Powered by <a href="https://allianceventures.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">ALLIANCEVENTURES</a>
           </p>
+          <button 
+            onClick={() => setShowLanding(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition-colors"
+          >
+            <Globe className="w-5 h-5" />
+            Go to Home
+          </button>
           <button 
             onClick={logout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-red-500/10 hover:text-red-400 transition-colors"
