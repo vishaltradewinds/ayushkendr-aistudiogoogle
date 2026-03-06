@@ -12,6 +12,8 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import fs from 'fs';
 import mongoose from 'mongoose';
+import { OAuth2Client } from 'google-auth-library';
+import Stripe from 'stripe';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +24,15 @@ const PORT = 3000;
 
 const MONGO_URI = process.env.MONGO_URI;
 const INTERNAL_TOKEN = process.env.INTERNAL_SERVICE_TOKEN || "super_internal_token";
+
+// Google OAuth
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || 'dummy-client-id';
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || 'dummy-client-secret';
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
+
+// Stripe
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_dummy';
+const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' as any });
 
 if (MONGO_URI) {
   mongoose.connect(MONGO_URI).then(() => {
@@ -309,6 +320,48 @@ authRouter.post('/login', (req, res) => {
   res.json({ access_token: token, role: user.role, org_id: user.org_id, email: user.email });
 });
 
+authRouter.post('/google', async (req, res) => {
+  const { credential, role, org_name, org_type, gstin } = req.body;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      return res.status(400).json({ error: 'Invalid Google token' });
+    }
+
+    const email = payload.email;
+    let user: any = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+
+    if (!user) {
+      // Register new user via Google
+      if (!['VENDOR_ADMIN', 'FACILITY_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role for registration' });
+      }
+      db.prepare('BEGIN').run();
+      const orgInfo = db.prepare('INSERT INTO organizations (name, type, gstin) VALUES (?, ?, ?)').run(org_name || payload.name || 'Unknown Org', org_type || 'HOSPITAL', gstin || null);
+      // Generate a random password for Google users since they don't use it
+      const randomPassword = crypto.randomBytes(16).toString('hex');
+      const hash = bcrypt.hashSync(randomPassword, 10);
+      const userInfo = db.prepare('INSERT INTO users (org_id, email, password, role) VALUES (?, ?, ?, ?)').run(orgInfo.lastInsertRowid, email, hash, role);
+      db.prepare('COMMIT').run();
+      
+      user = { id: userInfo.lastInsertRowid, org_id: orgInfo.lastInsertRowid, email, role };
+      logAudit(user.id, role, 'USER_REGISTERED_GOOGLE', 'USER', user.id, req.ip || '');
+    } else {
+      logAudit(user.id, user.role, 'USER_LOGIN_GOOGLE', 'USER', user.id, req.ip || '');
+    }
+
+    const token = jwt.sign({ id: user.id, org_id: user.org_id, email: user.email, role: user.role }, privateKey, { algorithm: 'RS256', expiresIn: '24h' });
+    res.json({ access_token: token, role: user.role, org_id: user.org_id, email: user.email });
+  } catch (error: any) {
+    if (db.inTransaction) db.prepare('ROLLBACK').run();
+    res.status(400).json({ error: 'Google authentication failed' });
+  }
+});
+
 authRouter.get('/me', authenticate, (req, res) => {
   const user: any = db.prepare('SELECT id, email, role, org_id, created_at FROM users WHERE id = ?').get((req as any).user.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
@@ -452,6 +505,111 @@ app.get('/api/orders', authenticate, (req, res) => {
     limit,
     totalPages: Math.ceil(total / limit)
   });
+});
+
+app.post('/api/orders/checkout-session', authenticate, authorize(['FACILITY_ADMIN', 'SUPER_ADMIN']), async (req, res) => {
+  const { items } = req.body; // Array of { product_id, quantity }
+  const facility_id = (req as any).user.org_id;
+
+  try {
+    const lineItems = [];
+    const orderIds = [];
+
+    for (const item of items) {
+      const product: any = db.prepare('SELECT * FROM products WHERE id = ?').get(item.product_id);
+      if (!product) continue;
+
+      const baseTotal = product.price * item.quantity;
+      const cgst = baseTotal * 0.09;
+      const sgst = baseTotal * 0.09;
+      const igst = 0;
+      const total = baseTotal + cgst + sgst + igst;
+
+      // Create order in PENDING status
+      const info = db.prepare(`
+        INSERT INTO orders (facility_id, vendor_id, product_id, amount, total, cgst, sgst, igst, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
+      `).run(facility_id, product.vendor_id, item.product_id, item.quantity, total, cgst, sgst, igst);
+      
+      orderIds.push(info.lastInsertRowid);
+
+      lineItems.push({
+        price_data: {
+          currency: 'inr',
+          product_data: {
+            name: product.name,
+            description: product.category,
+          },
+          unit_amount: Math.round((product.price + (product.price * 0.18)) * 100), // Price including 18% GST in paise
+        },
+        quantity: item.quantity,
+      });
+    }
+
+    if (lineItems.length === 0) {
+      return res.status(400).json({ error: 'No valid products found' });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: lineItems,
+      mode: 'payment',
+      success_url: `${req.headers.origin}?checkout=success`,
+      cancel_url: `${req.headers.origin}?checkout=cancelled`,
+      metadata: {
+        orderIds: JSON.stringify(orderIds),
+        userId: (req as any).user.id
+      }
+    });
+
+    res.json({ id: session.id, url: session.url });
+  } catch (error: any) {
+    console.error('Stripe session creation error:', error);
+    res.status(500).json({ error: 'Failed to create checkout session' });
+  }
+});
+
+app.post('/api/webhook/stripe', express.raw({type: 'application/json'}), (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  let event;
+
+  try {
+    if (endpointSecret) {
+      event = stripe.webhooks.constructEvent(req.body, sig as string, endpointSecret);
+    } else {
+      // Fallback for development if webhook secret is not set
+      event = JSON.parse(req.body.toString());
+    }
+  } catch (err: any) {
+    console.error(`Webhook Error: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle the event
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as any;
+    
+    if (session.metadata && session.metadata.orderIds) {
+      const orderIds = JSON.parse(session.metadata.orderIds);
+      const userId = session.metadata.userId;
+      
+      db.prepare('BEGIN').run();
+      try {
+        for (const orderId of orderIds) {
+          db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('CONFIRMED', orderId);
+          logAudit(userId, 'SYSTEM', 'ORDER_PAYMENT_COMPLETED', 'ORDER', orderId, 'STRIPE_WEBHOOK');
+        }
+        db.prepare('COMMIT').run();
+      } catch (e) {
+        db.prepare('ROLLBACK').run();
+        console.error('Failed to update order status after payment', e);
+      }
+    }
+  }
+
+  res.send();
 });
 
 app.post('/api/orders', authenticate, authorize(['FACILITY_ADMIN', 'SUPER_ADMIN']), (req, res) => {

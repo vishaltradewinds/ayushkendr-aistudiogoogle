@@ -53,35 +53,12 @@ export default function LanguageSwitcher() {
     setCurrentLang(langCode);
     setIsOpen(false);
     
-    if (langCode === 'en') {
-      // Clear the cookies for English
-      document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=None; Secure;';
-      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}; SameSite=None; Secure;`;
-      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname}; SameSite=None; Secure;`;
-    } else {
-      // Set the cookie for the selected language
-      document.cookie = `googtrans=/en/${langCode}; path=/; SameSite=None; Secure;`;
-      document.cookie = `googtrans=/en/${langCode}; path=/; domain=${window.location.hostname}; SameSite=None; Secure;`;
-      document.cookie = `googtrans=/en/${langCode}; path=/; domain=.${window.location.hostname}; SameSite=None; Secure;`;
-    }
-    
     // Find the Google Translate select element
     const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
     if (select) {
-      // For English, the value might be 'en' or empty string depending on the setup
-      if (langCode === 'en') {
-        const enOption = Array.from(select.options).find(opt => opt.value === 'en');
-        select.value = enOption ? 'en' : '';
-      } else {
-        select.value = langCode;
-      }
+      select.value = langCode;
       select.dispatchEvent(new Event('change', { bubbles: true }));
     }
-    
-    // Always reload the page to apply the translation reliably
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
   };
 
   return (
