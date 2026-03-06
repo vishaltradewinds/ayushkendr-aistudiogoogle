@@ -410,7 +410,7 @@ app.get('/api/products', authenticate, (req, res) => {
   res.json(products);
 });
 
-app.post('/api/products', authenticate, authorize(['SUPER_ADMIN', 'COMPANY_ADMIN', 'VENDOR_ADMIN']), (req, res) => {
+app.post('/api/products', authenticate, authorize(['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW']), (req, res) => {
   const { name, category, price, stock, description, specifications, images } = req.body;
   const vendor_id = (req as any).user.org_id;
   const info = db.prepare('INSERT INTO products (vendor_id, name, category, price, stock, description, specifications, images) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
@@ -419,7 +419,7 @@ app.post('/api/products', authenticate, authorize(['SUPER_ADMIN', 'COMPANY_ADMIN
   res.json({ id: info.lastInsertRowid });
 });
 
-app.delete('/api/products/:id', authenticate, authorize(['SUPER_ADMIN', 'VENDOR_ADMIN']), (req, res) => {
+app.delete('/api/products/:id', authenticate, authorize(['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW']), (req, res) => {
   const user = (req as any).user;
   const product: any = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
   
@@ -436,7 +436,7 @@ app.delete('/api/products/:id', authenticate, authorize(['SUPER_ADMIN', 'VENDOR_
   res.json({ success: true });
 });
 
-app.put('/api/products/:id', authenticate, authorize(['SUPER_ADMIN', 'VENDOR_ADMIN']), (req, res) => {
+app.put('/api/products/:id', authenticate, authorize(['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW']), (req, res) => {
   const user = (req as any).user;
   const { name, category, price, stock, description, specifications, images } = req.body;
   const product: any = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);

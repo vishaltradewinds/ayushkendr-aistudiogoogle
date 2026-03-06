@@ -131,7 +131,7 @@ export default function App() {
     if (user) {
       const allowedTabs = [
         { id: 'home', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'] },
-        { id: 'products', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN'] },
+        { id: 'products', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'] },
         { id: 'cart', roles: ['FACILITY_ADMIN'] },
         { id: 'orders', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN'] },
         { id: 'audit', roles: ['SUPER_ADMIN', 'GOVERNMENT_VIEW'] },
@@ -751,7 +751,7 @@ export default function App() {
   // Navigation Items based on Role
   const navItems = [
     { id: 'home', icon: LayoutDashboard, label: 'Dashboard', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'] },
-    { id: 'products', icon: Package, label: 'Catalogue', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN'] },
+    { id: 'products', icon: Package, label: 'Catalogue', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'] },
     { id: 'quick-order', icon: FileText, label: 'Quick Order', roles: ['FACILITY_ADMIN'] },
     { id: 'cart', icon: ShoppingCart, label: 'Shopping Cart', roles: ['FACILITY_ADMIN'] },
     { id: 'users', icon: Users, label: 'User Management', roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
@@ -1115,7 +1115,7 @@ export default function App() {
                 />
               ) : (
                 <>
-                  {user.role === 'VENDOR_ADMIN' && (
+                  {['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'].includes(user.role) && (
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 mb-8">
                   <h3 className="text-lg font-bold text-slate-900 mb-4">Add New Product</h3>
                   <form onSubmit={addProduct} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -1302,7 +1302,7 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredProducts.map((product) => (
                   <div key={product.id} className="group bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:border-emerald-500/30 transition-all duration-300 flex flex-col relative">
-                    {user.role === 'VENDOR_ADMIN' && product.vendor_id === user.org_id && !editingProduct && (
+                    {['SUPER_ADMIN', 'COMPANY_ADMIN', 'FACILITY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'].includes(user.role) && !editingProduct && (
                       <button 
                         onClick={() => setEditingProduct(product.id)}
                         className="absolute top-4 right-4 p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
@@ -1483,8 +1483,15 @@ export default function App() {
                                 <ShoppingCart className="w-5 h-5" />
                                 Add to Cart
                               </button>
+                              <button 
+                                onClick={() => deleteProduct(product.id)}
+                                className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                                Remove from Catalogue
+                              </button>
                             </div>
-                          ) : user.role === 'VENDOR_ADMIN' && product.vendor_id === user.org_id ? (
+                          ) : ['SUPER_ADMIN', 'COMPANY_ADMIN', 'VENDOR_ADMIN', 'GOVERNMENT_VIEW', 'ADMIN_VIEW'].includes(user.role) ? (
                             <button 
                               onClick={() => deleteProduct(product.id)}
                               className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
